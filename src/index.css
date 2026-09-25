@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+/* ============================================================
+   eRTMAC-NWIS — Global Styles & Design Tokens
+   ============================================================ */
+
+@theme {
+  /* ── Navy / Deep-Blue Primary ──────────────────────────────── */
+  --color-navy-950: #0a0e1a;
+  --color-navy-900: #0d1321;
+  --color-navy-800: #131b2e;
+  --color-navy-700: #1a2540;
+  --color-navy-600: #243052;
+  --color-navy-500: #2f3f6a;
+  --color-navy-400: #4a5d8a;
+  --color-navy-300: #6b7faa;
+  --color-navy-200: #96a6c7;
+  --color-navy-100: #c4cedf;
+  --color-navy-50: #e8ecf3;
+
+  /* ── Accent: Cyan / Teal ───────────────────────────────────── */
+  --color-accent-500: #22d3ee;
+  --color-accent-400: #67e8f9;
+  --color-accent-300: #a5f3fc;
+  --color-accent-600: #0891b2;
+
+  /* ── Status Colors ─────────────────────────────────────────── */
+  --color-status-success: #22c55e;
+  --color-status-warning: #f59e0b;
+  --color-status-danger: #ef4444;
+  --color-status-info: #3b82f6;
+  --color-status-critical: #dc2626;
+
+  /* ── Surfaces ──────────────────────────────────────────────── */
+  --color-surface-primary: #0d1321;
+  --color-surface-secondary: #131b2e;
+  --color-surface-card: #1a2540;
+  --color-surface-elevated: #243052;
+  --color-surface-hover: #2f3f6a;
+
+  /* ── Borders ───────────────────────────────────────────────── */
+  --color-border-default: #1e293b;
+  --color-border-subtle: #162032;
+  --color-border-strong: #334155;
+}
+
+/* ── Base ──────────────────────────────────────────────────── */
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-navy-950);
+  color: #e2e8f0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-navy-900);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-navy-600);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-navy-500);
+}
+
+/* ── Transitions ───────────────────────────────────────────── */
+* {
+  transition-property: background-color, border-color, color, opacity, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+/* ── Utilities ─────────────────────────────────────────────── */
+.glass-card {
+  background: rgba(26, 37, 64, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(30, 41, 59, 0.5);
+}
+
+.pulse-dot {
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.status-glow-green {
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+}
+
+.status-glow-red {
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+
+.status-glow-yellow {
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+}
+
+/* ── Leaflet overrides for dark theme ────────────────────── */
+.leaflet-container {
+  background: var(--color-navy-900) !important;
+}
