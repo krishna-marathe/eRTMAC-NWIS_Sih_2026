@@ -178,7 +178,7 @@ export function OverviewPage() {
         <div className="lg:col-span-1 bg-surface-card border border-border-default rounded-xl p-5">
           <SectionHeader
             title="Drilling Parameters"
-            subtitle="Current real-time readings"
+            subtitle="Simulated parameters (Demo)"
             icon={Gauge}
           />
 

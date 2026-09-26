@@ -13,7 +13,7 @@ import {
 
 const navItems = [
   { to: '/',              label: 'Overview',             icon: LayoutDashboard },
-  { to: '/live-well',     label: 'Live Well',            icon: Activity },
+  { to: '/live-well',     label: 'Well Monitor',            icon: Activity },
   { to: '/nearby-wells',  label: 'Nearby Wells',         icon: MapPin },
   { to: '/correlation',   label: 'Well Correlation',     icon: GitCompareArrows },
   { to: '/knowledge',     label: 'Historical Knowledge', icon: BookOpen },

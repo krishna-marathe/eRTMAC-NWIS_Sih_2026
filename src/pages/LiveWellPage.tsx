@@ -37,17 +37,20 @@ export function LiveWellPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-white">Live Well Monitor</h1>
+                <h1 className="text-lg font-bold text-white">Drilling Parameters — Demo</h1>
                 <StatusBadge status={activeWell.status} />
               </div>
-              <p className="text-sm text-slate-400">{activeWell.name} — Real-time drilling data stream</p>
+              <p className="text-sm text-slate-400">{activeWell.name} — Simulated drilling data for prototype demonstration</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-dot" />
-            <span className="text-xs text-emerald-400 font-medium">LIVE</span>
+            <span className="text-[10px] font-mono tracking-wider px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-medium border border-blue-500/30">SIMULATED DATA</span>
           </div>
         </div>
+      </div>
+
+      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-sm text-blue-400 text-center">
+        <strong>Prototype demonstration:</strong> All drilling measurements shown are synthetic demo data. No live rig sensor or eRTMAC connection is active.
       </div>
 
       {/* ── Parameters Grid ─────────────────────────────────── */}
