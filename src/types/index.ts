@@ -51,6 +51,12 @@ export interface DrillingEvent {
   sourceDocument: string;
   timestamp: string;             // ISO date
   durationHours?: number;
+  sourceMetadata?: {
+    filename: string;
+    extractedText: string;
+    extractionMethod: 'CSV' | 'JSON' | 'PDF Text' | 'Sample Data';
+    importTimestamp: string;
+  };
 }
 
 export interface DrillingParameters {

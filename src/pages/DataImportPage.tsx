@@ -1,50 +1,131 @@
 import { useState, useRef } from 'react';
-import { Upload, FileText, CheckCircle, AlertCircle, FileJson, FileSpreadsheet, Download } from 'lucide-react';
+import { Upload, FileText, AlertCircle, FileJson, Eye, Edit2, X, Check, File } from 'lucide-react';
 import { SectionHeader } from '../components/ui';
 import { useWellContext } from '../hooks/useWellContext';
-import type { DrillingEvent } from '../types';
+import type { DrillingEvent, EventType, EventSeverity, FormationId } from '../types';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Set up PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+type ReviewStatus = 'Selected' | 'Processing' | 'Needs Review' | 'Approved' | 'Rejected' | 'Failed';
+
+interface PendingRecord {
+  tempId: string;
+  status: ReviewStatus;
+  filename: string;
+  extractionMethod: 'CSV' | 'JSON' | 'PDF Text' | 'Sample Data';
+  extractedText: string;
+  errorMessage?: string;
+  data: Partial<DrillingEvent>;
+}
 
 export function DataImportPage() {
   const { addImportedRecords, importedRecords } = useWellContext();
-  const [file, setFile] = useState<File | null>(null);
-  const [parsing, setParsing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [validRecords, setValidRecords] = useState<DrillingEvent[]>([]);
-  const [invalidCount, setInvalidCount] = useState(0);
-  const [importSuccess, setImportSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [pendingRecords, setPendingRecords] = useState<PendingRecord[]>([]);
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-      setValidRecords([]);
-      setInvalidCount(0);
-      setError(null);
-      setImportSuccess(false);
+      const file = e.target.files[0];
+      await processFile(file);
+    }
+    // reset input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const createTempId = () => Math.random().toString(36).substr(2, 9);
+
+  const processFile = async (file: File) => {
+    const isPDF = file.name.toLowerCase().endsWith('.pdf');
+    const isJSON = file.name.toLowerCase().endsWith('.json');
+    const isCSV = file.name.toLowerCase().endsWith('.csv');
+
+    if (!isPDF && !isJSON && !isCSV) {
+      alert("Unsupported file type. Please upload a .pdf, .csv, or .json file.");
+      return;
+    }
+
+    try {
+      if (isPDF) {
+        await processPDF(file);
+      } else if (isJSON) {
+        await processJSON(file);
+      } else if (isCSV) {
+        await processCSV(file);
+      }
+    } catch (err: any) {
+      console.error(err);
+      // Create a failed record
+      setPendingRecords(prev => [...prev, {
+        tempId: createTempId(),
+        status: 'Failed',
+        filename: file.name,
+        extractionMethod: isPDF ? 'PDF Text' : isJSON ? 'JSON' : 'CSV',
+        extractedText: '',
+        errorMessage: err.message || 'Failed to process file.',
+        data: {}
+      }]);
     }
   };
 
-  const validateRow = (row: any): row is DrillingEvent => {
-    if (!row.id || typeof row.id !== 'string') return false;
-    if (!['Mud Loss', 'Stuck Pipe', 'Kick', 'Torque Spike', 'Cementing Issue', 'Fishing', 'NPT'].includes(row.eventType)) return false;
-    if (typeof row.depth !== 'number' || isNaN(row.depth)) return false;
-    if (!['F1', 'F2', 'F3', 'F4', 'F5'].includes(row.formation)) return false;
-    if (!['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(row.severity)) return false;
-    if (!row.description || typeof row.description !== 'string') return false;
-    if (!row.mitigation || typeof row.mitigation !== 'string') return false;
-    if (!row.sourceDocument || typeof row.sourceDocument !== 'string') return false;
-    if (!row.timestamp || isNaN(Date.parse(row.timestamp))) return false;
-    return true;
+  const processPDF = async (file: File) => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = '';
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item: any) => item.str).join(' ');
+      fullText += pageText + '\n';
+    }
+
+    if (!fullText.trim()) {
+      throw new Error("No readable text found in PDF. Scanned-document OCR is not supported in this prototype.");
+    }
+
+    setPendingRecords(prev => [...prev, {
+      tempId: createTempId(),
+      status: 'Needs Review',
+      filename: file.name,
+      extractionMethod: 'PDF Text',
+      extractedText: fullText.trim(),
+      data: {}
+    }]);
   };
 
-  const parseCSV = (text: string) => {
+  const processJSON = async (file: File) => {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!Array.isArray(data)) throw new Error("JSON file must contain an array of records.");
+    
+    const newRecords = data.map((row: any) => {
+      const { isValid, errors } = validateRowData(row);
+      return {
+        tempId: createTempId(),
+        status: (isValid ? 'Needs Review' : 'Rejected') as ReviewStatus,
+        filename: file.name,
+        extractionMethod: 'JSON' as const,
+        extractedText: JSON.stringify(row, null, 2),
+        errorMessage: isValid ? undefined : errors.join(', '),
+        data: row
+      };
+    });
+
+    setPendingRecords(prev => [...prev, ...newRecords]);
+  };
+
+  const processCSV = async (file: File) => {
+    const text = await file.text();
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
     if (lines.length < 2) throw new Error("CSV must have a header row and at least one data row.");
     const headers = lines[0].split(',');
     
-    const parsed: any[] = [];
+    const newRecords: PendingRecord[] = [];
     for (let i = 1; i < lines.length; i++) {
-      // Basic CSV split that ignores commas inside double quotes
       const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
       const row: any = {};
       headers.forEach((header, index) => {
@@ -58,78 +139,96 @@ export function DataImportPage() {
           row[header] = val;
         }
       });
-      parsed.push(row);
+      
+      const { isValid, errors } = validateRowData(row);
+      newRecords.push({
+        tempId: createTempId(),
+        status: (isValid ? 'Needs Review' : 'Rejected') as ReviewStatus,
+        filename: file.name,
+        extractionMethod: 'CSV',
+        extractedText: JSON.stringify(row, null, 2),
+        errorMessage: isValid ? undefined : errors.join(', '),
+        data: row
+      });
     }
-    return parsed;
+
+    setPendingRecords(prev => [...prev, ...newRecords]);
   };
 
-  const handleParse = () => {
-    if (!file) return;
-    setParsing(true);
-    setError(null);
-    setValidRecords([]);
-    setInvalidCount(0);
-    setImportSuccess(false);
+  const validateRowData = (row: any): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    if (!row.id) errors.push("Missing ID");
+    if (!['Mud Loss', 'Stuck Pipe', 'Kick', 'Torque Spike', 'Cementing Issue', 'Fishing', 'NPT'].includes(row.eventType)) errors.push("Invalid eventType");
+    if (typeof row.depth !== 'number' || isNaN(row.depth)) errors.push("Invalid depth");
+    if (!['F1', 'F2', 'F3', 'F4', 'F5'].includes(row.formation)) errors.push("Invalid formation");
+    if (!['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(row.severity)) errors.push("Invalid severity");
+    if (!row.description) errors.push("Missing description");
+    if (!row.timestamp || isNaN(Date.parse(row.timestamp))) errors.push("Invalid timestamp");
+    return { isValid: errors.length === 0, errors };
+  };
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result as string;
-        let data: any[] = [];
-        
-        if (file.name.toLowerCase().endsWith('.json')) {
-          data = JSON.parse(text);
-          if (!Array.isArray(data)) throw new Error("JSON file must contain an array of records.");
-        } else if (file.name.toLowerCase().endsWith('.csv')) {
-          data = parseCSV(text);
-        } else {
-          throw new Error("Unsupported file type. Please upload a .csv or .json file.");
-        }
+  const handleApprove = (tempId: string) => {
+    const record = pendingRecords.find(r => r.tempId === tempId);
+    if (!record) return;
 
-        const valid: DrillingEvent[] = [];
-        let invalid = 0;
+    const { isValid, errors } = validateRowData(record.data);
+    if (!isValid) {
+      alert("Cannot approve invalid record: " + errors.join(', '));
+      return;
+    }
 
-        data.forEach(row => {
-          // Normalize some types just in case
-          if (typeof row.depth === 'string') row.depth = Number(row.depth);
-          if (typeof row.durationHours === 'string') row.durationHours = Number(row.durationHours);
-          
-          if (validateRow(row)) {
-            // Append a suffix so we know it's imported
-            valid.push({ ...row, id: row.id.endsWith('-IMP') ? row.id : `${row.id}-IMP` });
-          } else {
-            invalid++;
-          }
-        });
-
-        setValidRecords(valid);
-        setInvalidCount(invalid);
-      } catch (err: any) {
-        setError(err.message || "Failed to parse file.");
-      } finally {
-        setParsing(false);
+    const eventToApprove: DrillingEvent = {
+      id: record.data.id!,
+      eventType: record.data.eventType as EventType,
+      depth: record.data.depth!,
+      formation: record.data.formation as FormationId,
+      severity: record.data.severity as EventSeverity,
+      description: record.data.description!,
+      mitigation: record.data.mitigation || '',
+      sourceDocument: record.data.sourceDocument || record.filename,
+      timestamp: record.data.timestamp!,
+      durationHours: record.data.durationHours,
+      sourceMetadata: {
+        filename: record.filename,
+        extractedText: record.extractedText.substring(0, 500) + (record.extractedText.length > 500 ? '...' : ''),
+        extractionMethod: record.extractionMethod,
+        importTimestamp: new Date().toISOString()
       }
     };
+
+    addImportedRecords([eventToApprove]);
     
-    reader.onerror = () => {
-      setError("Failed to read file.");
-      setParsing(false);
-    };
-
-    reader.readAsText(file);
+    setPendingRecords(prev => prev.map(r => 
+      r.tempId === tempId ? { ...r, status: 'Approved' } : r
+    ));
+    setSelectedRecordId(null);
   };
 
-  const handleImport = () => {
-    if (validRecords.length > 0) {
-      addImportedRecords(validRecords);
-      setImportSuccess(true);
-    }
+  const handleReject = (tempId: string) => {
+    setPendingRecords(prev => prev.map(r => 
+      r.tempId === tempId ? { ...r, status: 'Rejected', errorMessage: 'Manually rejected by user' } : r
+    ));
+    setSelectedRecordId(null);
   };
 
-  const downloadTemplate = (type: 'csv' | 'json') => {
-    const templateData = [
-      {
-        id: "EV-UPLOAD-01",
+  const updateRecordData = (tempId: string, field: string, value: any) => {
+    setPendingRecords(prev => prev.map(r => {
+      if (r.tempId === tempId) {
+        return { ...r, data: { ...r.data, [field]: value } };
+      }
+      return r;
+    }));
+  };
+
+  const loadSampleData = () => {
+    const sampleRecord: PendingRecord = {
+      tempId: createTempId(),
+      status: 'Needs Review',
+      filename: 'SampleData.json',
+      extractionMethod: 'Sample Data',
+      extractedText: '{"id": "EV-SAMPLE", "eventType": "Torque Spike"}',
+      data: {
+        id: "EV-SAMPLE-01",
         eventType: "Torque Spike",
         depth: 3500,
         formation: "F4",
@@ -140,210 +239,274 @@ export function DataImportPage() {
         timestamp: "2023-01-15T08:00:00Z",
         durationHours: 2
       }
-    ];
-
-    let content = '';
-    let mime = '';
-    if (type === 'json') {
-      content = JSON.stringify(templateData, null, 2);
-      mime = 'application/json';
-    } else {
-      content = 'id,eventType,depth,formation,severity,description,mitigation,sourceDocument,timestamp,durationHours\n' +
-                '"EV-UPLOAD-01","Torque Spike",3500,"F4","MEDIUM","Unexpected torque spike during drilling.","Reduced WOB and circulated.","DOC-2023-01","2023-01-15T08:00:00Z",2';
-      mime = 'text/csv';
-    }
-
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `nwis_template.${type}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    };
+    setPendingRecords(prev => [...prev, sampleRecord]);
   };
 
+  const handleClearRecords = () => {
+    if (confirm("Are you sure you want to clear all imported records? This will clear session storage.")) {
+      addImportedRecords([]); // We don't have a direct clear, but we can clear by bypassing or we just clear the sessionStorage directly and reload. Actually, `useWellContext` state `importedRecords` won't update if we just clear sessionStorage unless we have a setter. Wait, `addImportedRecords` only adds. Let's just reload after clearing session storage.
+      sessionStorage.removeItem('nwis_imported_records');
+      window.location.reload();
+    }
+  };
+
+  const selectedRecord = pendingRecords.find(r => r.tempId === selectedRecordId);
+
   return (
-    <div className="space-y-6 max-w-[1200px] mx-auto pb-10">
-      <SectionHeader 
-        title="Data Import" 
-        subtitle="Import historical well records (CSV or JSON) into prototype session storage." 
-        icon={Upload} 
-      />
+    <div className="space-y-6 max-w-[1200px] mx-auto pb-10 flex">
+      <div className="flex-1 space-y-6">
+        <SectionHeader 
+          title="Historical Records Studio" 
+          subtitle="Import, parse, and review historical well records (CSV, JSON, PDF). Browser-based prototype." 
+          icon={Upload} 
+        />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left Column: Instructions and Templates */}
-        <div className="space-y-6">
-          <div className="bg-surface-card border border-border-default rounded-xl p-5">
-            <h3 className="text-sm font-bold text-white mb-4">Import Guidelines</h3>
-            <ul className="text-sm text-slate-300 space-y-3">
-              <li className="flex items-start gap-2">
-                <CheckCircle size={16} className="text-emerald-400 mt-0.5 shrink-0" />
-                <span>Only structured <strong>.csv</strong> and <strong>.json</strong> files are supported in this MVP.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <AlertCircle size={16} className="text-amber-400 mt-0.5 shrink-0" />
-                <span><strong>PDF extraction is not supported.</strong> Unstructured PDF documents cannot be automatically converted into drilling events at this phase.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <AlertCircle size={16} className="text-amber-400 mt-0.5 shrink-0" />
-                <span>Records are saved to browser session storage. They will be cleared if you close the tab.</span>
-              </li>
-            </ul>
-
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-6 mb-3">Download Templates</h4>
-            <div className="flex gap-3">
-              <button onClick={() => downloadTemplate('csv')} className="flex-1 flex items-center justify-center gap-2 bg-navy-800 hover:bg-navy-700 border border-border-subtle rounded py-2 text-xs text-slate-300 transition-colors">
-                <FileSpreadsheet size={14} /> CSV Template
-              </button>
-              <button onClick={() => downloadTemplate('json')} className="flex-1 flex items-center justify-center gap-2 bg-navy-800 hover:bg-navy-700 border border-border-subtle rounded py-2 text-xs text-slate-300 transition-colors">
-                <FileJson size={14} /> JSON Template
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-             <div className="text-sm text-blue-300 font-semibold mb-2">Total Imported Records</div>
-             <div className="text-3xl font-bold text-white">{importedRecords.length}</div>
-          </div>
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-sm text-blue-400 text-center flex items-center justify-center gap-2">
+          <AlertCircle size={16} />
+          <span><strong>Browser-based prototype.</strong> Files are processed locally for demonstration. No records are sent to OIL systems or a backend.</span>
         </div>
 
-        {/* Right Column: Upload Area */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-surface-card border border-border-default rounded-xl p-5">
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-              <Upload size={16} className="text-accent-400" /> Upload File
-            </h3>
-
-            <div 
-              className="border-2 border-dashed border-border-subtle hover:border-accent-500/50 transition-colors rounded-xl p-8 flex flex-col items-center justify-center text-center bg-navy-900/50 cursor-pointer"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <FileText size={32} className="text-slate-500 mb-3" />
-              <p className="text-sm text-white font-medium mb-1">Click to select a file</p>
-              <p className="text-xs text-slate-500">Supports .csv and .json</p>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept=".csv,.json,application/json,text/csv" 
-                onChange={handleFileChange}
-              />
-            </div>
-
-            {file && (
-              <div className="mt-4 p-3 bg-navy-800 border border-border-subtle rounded flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FileText size={20} className="text-accent-400" />
-                  <div>
-                    <p className="text-sm text-white font-medium">{file.name}</p>
-                    <p className="text-xs text-slate-400">{(file.size / 1024).toFixed(1)} KB</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={handleParse}
-                  disabled={parsing}
-                  className="px-4 py-2 bg-accent-600 hover:bg-accent-500 text-white text-sm font-medium rounded transition-colors disabled:opacity-50"
-                >
-                  {parsing ? 'Parsing...' : 'Analyze File'}
-                </button>
-              </div>
-            )}
-
-            {error && (
-              <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded text-red-400 text-sm flex items-start gap-2">
-                <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-          </div>
-
-          {(validRecords.length > 0 || invalidCount > 0) && !importSuccess && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column: Upload */}
+          <div className="space-y-6">
             <div className="bg-surface-card border border-border-default rounded-xl p-5">
-              <h3 className="text-sm font-bold text-white mb-4">Preview & Import</h3>
-              
-              <div className="flex gap-4 mb-4">
-                <div className="flex-1 bg-emerald-500/10 border border-emerald-500/30 rounded p-3 text-center">
-                  <p className="text-xs text-emerald-400/80 uppercase tracking-wider mb-1">Valid Records</p>
-                  <p className="text-2xl font-bold text-emerald-400">{validRecords.length}</p>
-                </div>
-                <div className="flex-1 bg-red-500/10 border border-red-500/30 rounded p-3 text-center">
-                  <p className="text-xs text-red-400/80 uppercase tracking-wider mb-1">Invalid Rows</p>
-                  <p className="text-2xl font-bold text-red-400">{invalidCount}</p>
-                </div>
+              <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                <Upload size={16} className="text-accent-400" /> Upload File
+              </h3>
+
+              <div 
+                className="border-2 border-dashed border-border-subtle hover:border-accent-500/50 transition-colors rounded-xl p-8 flex flex-col items-center justify-center text-center bg-navy-900/50 cursor-pointer mb-4"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <FileText size={32} className="text-slate-500 mb-3" />
+                <p className="text-sm text-white font-medium mb-1">Click to select a file</p>
+                <p className="text-xs text-slate-500">Supports .csv, .json, and text-based .pdf</p>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept=".csv,.json,application/json,text/csv,application/pdf" 
+                  onChange={handleFileChange}
+                />
               </div>
 
-              {invalidCount > 0 && (
-                <p className="text-xs text-amber-400 mb-4 bg-amber-500/10 p-2 rounded">
-                  Invalid rows are missing required fields or have incorrect data types. They will be skipped.
-                </p>
-              )}
-
-              {validRecords.length > 0 && (
-                <div className="space-y-4">
-                  <div className="max-h-60 overflow-y-auto bg-navy-900 border border-border-subtle rounded text-xs">
-                    <table className="w-full text-left border-collapse">
-                      <thead className="bg-navy-950 sticky top-0">
-                        <tr>
-                          <th className="p-2 border-b border-border-subtle text-slate-400">ID</th>
-                          <th className="p-2 border-b border-border-subtle text-slate-400">Event</th>
-                          <th className="p-2 border-b border-border-subtle text-slate-400">Depth</th>
-                          <th className="p-2 border-b border-border-subtle text-slate-400">Severity</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {validRecords.slice(0, 10).map((r, i) => (
-                          <tr key={i} className="border-b border-border-subtle last:border-0 hover:bg-navy-800">
-                            <td className="p-2 text-slate-300 font-mono">{r.id}</td>
-                            <td className="p-2 text-slate-300">{r.eventType}</td>
-                            <td className="p-2 text-slate-300">{r.depth}m</td>
-                            <td className="p-2 text-slate-300">{r.severity}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {validRecords.length > 10 && (
-                      <div className="p-2 text-center text-slate-500 border-t border-border-subtle italic">
-                        Showing first 10 valid records...
-                      </div>
-                    )}
-                  </div>
-
-                  <button 
-                    onClick={handleImport}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Download size={18} /> Import {validRecords.length} Records
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {importSuccess && (
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-8 text-center flex flex-col items-center">
-              <CheckCircle size={48} className="text-emerald-400 mb-4" />
-              <h3 className="text-lg font-bold text-white mb-2">Import Successful</h3>
-              <p className="text-sm text-emerald-200/80 mb-6">
-                {validRecords.length} historical records have been added to your prototype session. They are now available in Knowledge Search.
-              </p>
               <button 
-                onClick={() => {
-                  setFile(null);
-                  setImportSuccess(false);
-                  setValidRecords([]);
-                  setInvalidCount(0);
-                }}
-                className="px-6 py-2 bg-navy-800 hover:bg-navy-700 text-white border border-border-subtle rounded transition-colors"
+                onClick={loadSampleData}
+                className="w-full py-2 bg-navy-800 hover:bg-navy-700 text-slate-300 text-xs rounded border border-border-subtle transition-colors mb-2"
               >
-                Import More Data
+                Load Built-in Sample Record
+              </button>
+
+              <button 
+                onClick={handleClearRecords}
+                className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs rounded border border-red-500/30 transition-colors"
+              >
+                Clear All Approved Demo Records
               </button>
             </div>
-          )}
+
+            <div className="bg-surface-card border border-border-default rounded-xl p-5">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Approved Records</h4>
+              <div className="text-3xl font-bold text-white mb-2">{importedRecords.length}</div>
+              <p className="text-xs text-slate-500">Available in Knowledge Search & Correlation</p>
+            </div>
+          </div>
+
+          {/* Right Column: Processing Queue */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-surface-card border border-border-default rounded-xl p-5">
+              <h3 className="text-sm font-bold text-white mb-4">Processing Queue</h3>
+
+              {pendingRecords.length === 0 ? (
+                <div className="text-center py-10 border border-dashed border-border-subtle rounded-xl bg-navy-900/30">
+                  <p className="text-sm text-slate-500">No records imported yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pendingRecords.map(record => (
+                    <div 
+                      key={record.tempId} 
+                      className={`p-3 rounded border flex items-center justify-between cursor-pointer transition-colors ${
+                        selectedRecordId === record.tempId ? 'bg-navy-800 border-accent-500' : 'bg-navy-900 border-border-subtle hover:border-slate-500'
+                      }`}
+                      onClick={() => setSelectedRecordId(record.tempId)}
+                    >
+                      <div className="flex items-center gap-3">
+                        {record.extractionMethod === 'PDF Text' ? <File size={16} className="text-slate-400"/> : <FileJson size={16} className="text-slate-400"/>}
+                        <div>
+                          <p className="text-sm text-white font-medium">{record.filename}</p>
+                          <p className="text-[10px] text-slate-500">{record.extractionMethod} • {record.data.eventType || 'Unknown Event'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <StatusBadge status={record.status} />
+                        <ArrowRight size={14} className="text-slate-500" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Review Drawer */}
+      {selectedRecord && (
+        <div className="w-[400px] shrink-0 bg-surface-card border-l border-border-default h-[calc(100vh-80px)] overflow-y-auto fixed right-0 top-[80px] p-5 shadow-2xl z-40">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Edit2 size={18} className="text-accent-400" /> Review Record
+            </h2>
+            <button onClick={() => setSelectedRecordId(null)} className="text-slate-400 hover:text-white transition-colors">
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="mb-4">
+             <StatusBadge status={selectedRecord.status} />
+             {selectedRecord.errorMessage && (
+               <p className="text-xs text-red-400 mt-2 bg-red-500/10 p-2 rounded">{selectedRecord.errorMessage}</p>
+             )}
+          </div>
+
+          <div className="space-y-4 mb-6">
+            <div>
+              <label className="block text-xs font-bold text-slate-400 mb-1">Well / Event ID *</label>
+              <input 
+                type="text" 
+                value={selectedRecord.data.id || ''} 
+                onChange={(e) => updateRecordData(selectedRecord.tempId, 'id', e.target.value)}
+                className="w-full bg-navy-900 border border-border-subtle rounded p-2 text-sm text-white focus:outline-none focus:border-accent-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-400 mb-1">Event Type *</label>
+              <select 
+                value={selectedRecord.data.eventType || ''} 
+                onChange={(e) => updateRecordData(selectedRecord.tempId, 'eventType', e.target.value)}
+                className="w-full bg-navy-900 border border-border-subtle rounded p-2 text-sm text-white focus:outline-none focus:border-accent-500"
+              >
+                <option value="">Select...</option>
+                {['Mud Loss', 'Stuck Pipe', 'Kick', 'Torque Spike', 'Cementing Issue', 'Fishing', 'NPT'].map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Depth (m) *</label>
+                <input 
+                  type="number" 
+                  value={selectedRecord.data.depth || ''} 
+                  onChange={(e) => updateRecordData(selectedRecord.tempId, 'depth', Number(e.target.value))}
+                  className="w-full bg-navy-900 border border-border-subtle rounded p-2 text-sm text-white focus:outline-none focus:border-accent-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Severity *</label>
+                <select 
+                  value={selectedRecord.data.severity || ''} 
+                  onChange={(e) => updateRecordData(selectedRecord.tempId, 'severity', e.target.value)}
+                  className="w-full bg-navy-900 border border-border-subtle rounded p-2 text-sm text-white focus:outline-none focus:border-accent-500"
+                >
+                  <option value="">Select...</option>
+                  {['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Formation *</label>
+                <select 
+                  value={selectedRecord.data.formation || ''} 
+                  onChange={(e) => updateRecordData(selectedRecord.tempId, 'formation', e.target.value)}
+                  className="w-full bg-navy-900 border border-border-subtle rounded p-2 text-sm text-white focus:outline-none focus:border-accent-500"
+                >
+                  <option value="">Select...</option>
+                  {['F1', 'F2', 'F3', 'F4', 'F5'].map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Timestamp *</label>
+                <input 
+                  type="text" 
+                  placeholder="YYYY-MM-DD..."
+                  value={selectedRecord.data.timestamp || ''} 
+                  onChange={(e) => updateRecordData(selectedRecord.tempId, 'timestamp', e.target.value)}
+                  className="w-full bg-navy-900 border border-border-subtle rounded p-2 text-sm text-white focus:outline-none focus:border-accent-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-400 mb-1">Description *</label>
+              <textarea 
+                rows={3}
+                value={selectedRecord.data.description || ''} 
+                onChange={(e) => updateRecordData(selectedRecord.tempId, 'description', e.target.value)}
+                className="w-full bg-navy-900 border border-border-subtle rounded p-2 text-sm text-white focus:outline-none focus:border-accent-500 resize-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-400 mb-1">Mitigation</label>
+              <textarea 
+                rows={2}
+                value={selectedRecord.data.mitigation || ''} 
+                onChange={(e) => updateRecordData(selectedRecord.tempId, 'mitigation', e.target.value)}
+                className="w-full bg-navy-900 border border-border-subtle rounded p-2 text-sm text-white focus:outline-none focus:border-accent-500 resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 mb-8">
+             <button 
+               onClick={() => handleApprove(selectedRecord.tempId)}
+               disabled={selectedRecord.status === 'Approved'}
+               className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded flex items-center justify-center gap-2 transition-colors"
+             >
+               <Check size={16} /> Approve
+             </button>
+             <button 
+               onClick={() => handleReject(selectedRecord.tempId)}
+               disabled={selectedRecord.status === 'Approved' || selectedRecord.status === 'Rejected'}
+               className="flex-1 py-2 bg-red-500/20 hover:bg-red-500/30 disabled:opacity-50 text-red-400 font-bold rounded flex items-center justify-center gap-2 transition-colors"
+             >
+               <X size={16} /> Reject
+             </button>
+          </div>
+
+          <div className="border-t border-border-subtle pt-6">
+             <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+               <Eye size={16} className="text-accent-400" /> View Source
+             </h3>
+             <p className="text-[10px] text-slate-500 mb-3">Extracted from: {selectedRecord.filename} ({selectedRecord.extractionMethod})</p>
+             <div className="bg-navy-950 p-3 rounded border border-border-subtle text-xs text-slate-300 font-mono h-48 overflow-y-auto whitespace-pre-wrap">
+               {selectedRecord.extractedText || "No text could be extracted."}
+             </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function StatusBadge({ status }: { status: ReviewStatus }) {
+  let color = 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+  if (status === 'Approved') color = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+  if (status === 'Rejected' || status === 'Failed') color = 'bg-red-500/20 text-red-400 border-red-500/30';
+  if (status === 'Needs Review') color = 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+
+  return (
+    <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${color}`}>
+      {status}
+    </span>
+  );
+}
+
+function ArrowRight({ size, className }: { size: number, className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M5 12h14"></path>
+      <path d="m12 5 7 7-7 7"></path>
+    </svg>
   );
 }
