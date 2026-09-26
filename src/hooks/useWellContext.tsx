@@ -12,6 +12,15 @@ import {
 } from '../data/mockData';
 import { generateAlertsForWell } from '../utils/alertGeneration';
 
+interface ReportNotes {
+  wellId: string;
+  notes: string;
+  observations: string;
+  actions: string;
+  status: string;
+  reviewer: string;
+}
+
 interface WellContextType {
   activeWell: Well;
   setActiveWell: (well: Well) => void;
@@ -22,6 +31,8 @@ interface WellContextType {
   nearbyWells: Well[];
   acknowledgeAlert: (alertId: string) => void;
   updateAlertStatus: (alertId: string, status: AlertStatus) => void;
+  reportNotes: Record<string, ReportNotes>;
+  updateReportNotes: (wellId: string, notes: ReportNotes) => void;
 }
 
 const WellContext = createContext<WellContextType | undefined>(undefined);
@@ -33,6 +44,7 @@ export function WellProvider({ children }: { children: ReactNode }) {
   const initialAlerts = useMemo(() => generateAlertsForWell(well, nearbyWells), [well]);
   
   const [alerts, setAlerts] = useState<Alert[]>(initialAlerts);
+  const [reportNotes, setReportNotes] = useState<Record<string, ReportNotes>>({});
 
   const acknowledgeAlert = (alertId: string) => {
     setAlerts((prev) =>
@@ -52,6 +64,10 @@ export function WellProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const updateReportNotes = (wellId: string, notes: ReportNotes) => {
+    setReportNotes((prev) => ({ ...prev, [wellId]: notes }));
+  };
+
   const unacknowledgedAlertCount = alerts.filter((a) => !a.acknowledged && a.status === 'NEW').length;
 
   return (
@@ -66,6 +82,8 @@ export function WellProvider({ children }: { children: ReactNode }) {
         nearbyWells,
         acknowledgeAlert,
         updateAlertStatus,
+        reportNotes,
+        updateReportNotes,
       }}
     >
       {children}
