@@ -1,4 +1,5 @@
-import { Activity, Gauge, TrendingUp, Zap, Droplets, RotateCw, Weight, Waves, BarChart3, ArrowDownRight } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Activity, Gauge, TrendingUp, Zap, Droplets, RotateCw, Weight, Waves, BarChart3, ArrowDownRight, Play, Pause, RotateCcw } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -17,14 +18,68 @@ import { parameterTimeSeries } from '../data/mockData';
 export function LiveWellPage() {
   const { activeWell, currentParameters } = useWellContext();
 
-  const chartData = parameterTimeSeries.map((p) => ({
-    depth: p.depth,
-    torque: p.torque,
-    rop: p.rop,
-    wob: p.wob,
-    rpm: p.rpm,
-    ecd: p.ecd,
-  }));
+  // Create a synthetic sequence of 20 points after the current parameters for deterministic demo
+  const playbackSequence = useMemo(() => {
+    const seq = [{ ...currentParameters }];
+    let last = seq[0];
+    for (let i = 1; i <= 20; i++) {
+      last = {
+        ...last,
+        depth: last.depth + 10,
+        torque: Number((last.torque + 0.15 + (i % 3 === 0 ? 0.3 : 0)).toFixed(1)),
+        rop: Number((Math.max(8, last.rop - 0.2)).toFixed(1)),
+        wob: Number((last.wob + 0.1).toFixed(1)),
+        rpm: last.rpm,
+        ecd: Number((last.ecd + 0.05).toFixed(2)),
+        mudFlow: last.mudFlow,
+        mudWeight: last.mudWeight,
+        pressure: last.pressure + 5,
+        hookLoad: last.hookLoad,
+        timestamp: new Date(new Date(last.timestamp).getTime() + 15 * 60000).toISOString(),
+      };
+      seq.push(last);
+    }
+    return seq;
+  }, [currentParameters]);
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackIndex, setPlaybackIndex] = useState(0);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isPlaying) {
+      interval = setInterval(() => {
+        setPlaybackIndex((prev) => {
+          if (prev >= playbackSequence.length - 1) return 0; // loop back to 0
+          return prev + 1;
+        });
+      }, 1500); // 1.5 seconds per step
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, playbackSequence.length]);
+
+  const handlePlayPause = () => setIsPlaying(!isPlaying);
+  const handleReset = () => {
+    setIsPlaying(false);
+    setPlaybackIndex(0);
+  };
+
+  const currentSimulatedParams = playbackSequence[playbackIndex];
+
+  // Derive chart data combining history and current playback state
+  const chartData = useMemo(() => {
+    const baseHistory = parameterTimeSeries.filter(p => p.depth < playbackSequence[0].depth);
+    const playbackHistory = playbackSequence.slice(0, playbackIndex + 1);
+    
+    return [...baseHistory, ...playbackHistory].map((p) => ({
+      depth: p.depth,
+      torque: p.torque,
+      rop: p.rop,
+      wob: p.wob,
+      rpm: p.rpm,
+      ecd: p.ecd,
+    }));
+  }, [playbackIndex, playbackSequence]);
 
   return (
     <div className="space-y-5 max-w-[1600px] mx-auto">
@@ -43,33 +98,57 @@ export function LiveWellPage() {
               <p className="text-sm text-slate-400">{activeWell.name} — Simulated drilling data for prototype demonstration</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono tracking-wider px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-medium border border-blue-500/30">SIMULATED DATA</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={handlePlayPause}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 hover:bg-navy-600 border border-border-subtle rounded-md text-sm text-white transition-colors"
+              >
+                {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+                {isPlaying ? 'Pause' : 'Start'}
+              </button>
+              <button 
+                onClick={handleReset}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 hover:bg-navy-600 border border-border-subtle rounded-md text-sm text-slate-300 transition-colors"
+              >
+                <RotateCcw size={14} />
+                Reset
+              </button>
+            </div>
+            <div className="text-xs text-slate-400 font-mono">
+              Step: {playbackIndex + 1} / {playbackSequence.length}
+            </div>
+            <span className={`text-[10px] font-mono tracking-wider px-2 py-0.5 rounded border font-medium ${
+              isPlaying ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+            }`}>
+              {isPlaying ? 'SIMULATED PLAYBACK' : 'SIMULATED DATA — PAUSED'}
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-sm text-blue-400 text-center">
-        <strong>Prototype demonstration:</strong> All drilling measurements shown are synthetic demo data. No live rig sensor or eRTMAC connection is active.
+      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-sm text-blue-400 text-center flex items-center justify-center gap-2">
+        <Activity size={16} />
+        <span><strong>Simulated playback uses predefined synthetic drilling measurements for prototype demonstration.</strong> No live rig sensor or eRTMAC connection is active.</span>
       </div>
 
       {/* ── Parameters Grid ─────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <MetricCard label="Depth" value={currentParameters.depth.toLocaleString()} unit="m" icon={ArrowDownRight} accent="info" />
-        <MetricCard label="ROP" value={currentParameters.rop} unit="m/hr" icon={TrendingUp} accent="success" trend="down" trendValue="1.8 over 80m" />
-        <MetricCard label="WOB" value={currentParameters.wob} unit="klbs" icon={Weight} accent="default" />
-        <MetricCard label="RPM" value={currentParameters.rpm} unit="rpm" icon={RotateCw} accent="default" />
-        <MetricCard label="Torque" value={currentParameters.torque} unit="kN·m" icon={Zap} accent="warning" trend="up" trendValue="2.7 over 80m" />
-        <MetricCard label="Mud Flow" value={currentParameters.mudFlow} unit="L/min" icon={Droplets} accent="default" />
-        <MetricCard label="Mud Weight" value={currentParameters.mudWeight} unit="ppg" icon={Waves} accent="default" />
-        <MetricCard label="Pressure" value={currentParameters.pressure.toLocaleString()} unit="psi" icon={Gauge} accent="default" />
-        <MetricCard label="ECD" value={currentParameters.ecd} unit="ppg" icon={BarChart3} accent="default" />
-        <MetricCard label="Hook Load" value={currentParameters.hookLoad} unit="klbs" icon={Activity} accent="default" />
+        <MetricCard label="Depth" value={currentSimulatedParams.depth.toLocaleString()} unit="m" icon={ArrowDownRight} accent="info" />
+        <MetricCard label="ROP" value={currentSimulatedParams.rop} unit="m/hr" icon={TrendingUp} accent="success" trend="down" trendValue="1.8 over 80m" />
+        <MetricCard label="WOB" value={currentSimulatedParams.wob} unit="klbs" icon={Weight} accent="default" />
+        <MetricCard label="RPM" value={currentSimulatedParams.rpm} unit="rpm" icon={RotateCw} accent="default" />
+        <MetricCard label="Torque" value={currentSimulatedParams.torque} unit="kN·m" icon={Zap} accent="warning" trend="up" trendValue="2.7 over 80m" />
+        <MetricCard label="Mud Flow" value={currentSimulatedParams.mudFlow} unit="L/min" icon={Droplets} accent="default" />
+        <MetricCard label="Mud Weight" value={currentSimulatedParams.mudWeight} unit="ppg" icon={Waves} accent="default" />
+        <MetricCard label="Pressure" value={currentSimulatedParams.pressure.toLocaleString()} unit="psi" icon={Gauge} accent="default" />
+        <MetricCard label="ECD" value={currentSimulatedParams.ecd} unit="ppg" icon={BarChart3} accent="default" />
+        <MetricCard label="Hook Load" value={currentSimulatedParams.hookLoad} unit="klbs" icon={Activity} accent="default" />
       </div>
 
       {/* ── Torque & ROP Chart ──────────────────────────────── */}
       <div className="bg-surface-card border border-border-default rounded-xl p-5">
-        <SectionHeader title="Torque vs Depth" subtitle="Torque trend with stuck-pipe alert threshold" icon={Zap} />
+        <SectionHeader title="Torque vs Depth" subtitle="Torque trend with illustrative prototype threshold" icon={Zap} />
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 30, bottom: 5, left: 0 }}>
@@ -79,7 +158,7 @@ export function LiveWellPage() {
               <Tooltip
                 contentStyle={{ backgroundColor: '#1a2540', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '12px', color: '#e2e8f0' }}
               />
-              <ReferenceLine y={16} stroke="#ef4444" strokeDasharray="5 5" label={{ value: 'Alert Threshold', position: 'right', fill: '#ef4444', fontSize: 10 }} />
+              <ReferenceLine y={16} stroke="#ef4444" strokeDasharray="5 5" label={{ value: 'Illustrative Threshold', position: 'right', fill: '#ef4444', fontSize: 10 }} />
               <Line type="monotone" dataKey="torque" stroke="#f59e0b" strokeWidth={2} dot={{ fill: '#f59e0b', r: 4 }} name="Torque (kN·m)" />
             </LineChart>
           </ResponsiveContainer>
