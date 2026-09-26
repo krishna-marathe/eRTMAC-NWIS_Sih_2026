@@ -21,7 +21,7 @@ interface PendingRecord {
 }
 
 export function DataImportPage() {
-  const { addImportedRecords, importedRecords } = useWellContext();
+  const { addImportedRecords, importedRecords, clearImportedRecords } = useWellContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [pendingRecords, setPendingRecords] = useState<PendingRecord[]>([]);
@@ -247,10 +247,8 @@ export function DataImportPage() {
   };
 
   const handleClearRecords = () => {
-    if (confirm("Are you sure you want to clear all imported records? This will clear session storage.")) {
-      addImportedRecords([]); // We don't have a direct clear, but we can clear by bypassing or we just clear the sessionStorage directly and reload. Actually, `useWellContext` state `importedRecords` won't update if we just clear sessionStorage unless we have a setter. Wait, `addImportedRecords` only adds. Let's just reload after clearing session storage.
-      sessionStorage.removeItem('nwis_imported_records');
-      window.location.reload();
+    if (confirm("Are you sure you want to clear all imported records? This will permanently delete your session imports without affecting the seeded dataset.")) {
+      clearImportedRecords();
     }
   };
 

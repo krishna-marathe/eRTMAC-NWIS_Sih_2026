@@ -140,6 +140,18 @@ export function LiveWellPage() {
         <span><strong>Simulated playback uses predefined synthetic drilling measurements for prototype demonstration.</strong> No live rig sensor or eRTMAC connection is active.</span>
       </div>
 
+      {currentSimulatedParams.torque >= 16 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-amber-400 flex items-start gap-3">
+          <Zap className="mt-0.5 shrink-0 text-amber-400" size={18} />
+          <div>
+            <h4 className="font-bold text-sm mb-1 uppercase tracking-wider">Simulated Demo Alert: High Torque Trend</h4>
+            <p className="text-xs text-amber-400/80 leading-relaxed">
+              The simulated torque parameter has crossed the illustrative threshold of 16 kN·m. This is a deterministic condition for demonstration purposes. It does not reflect live operations and is kept separate from approved historical records.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Parameters Grid ─────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <MetricCard label="Depth" value={currentSimulatedParams.depth.toLocaleString()} unit="m" icon={ArrowDownRight} accent="info" />

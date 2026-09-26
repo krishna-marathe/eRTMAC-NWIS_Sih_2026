@@ -35,6 +35,7 @@ interface WellContextType {
   updateReportNotes: (wellId: string, notes: ReportNotes) => void;
   importedRecords: DrillingEvent[];
   addImportedRecords: (records: DrillingEvent[]) => void;
+  clearImportedRecords: () => void;
 }
 
 const WellContext = createContext<WellContextType | undefined>(undefined);
@@ -71,6 +72,14 @@ export function WellProvider({ children }: { children: ReactNode }) {
       }
       return updated;
     });
+  };
+  const clearImportedRecords = () => {
+    setImportedRecords([]);
+    try {
+      sessionStorage.removeItem('nwis_imported_records');
+    } catch (e) {
+      console.error('Failed to clear session storage', e);
+    }
   };
 
   const acknowledgeAlert = (alertId: string) => {
@@ -157,6 +166,7 @@ export function WellProvider({ children }: { children: ReactNode }) {
         updateReportNotes,
         importedRecords,
         addImportedRecords,
+        clearImportedRecords,
       }}
     >
       {children}
