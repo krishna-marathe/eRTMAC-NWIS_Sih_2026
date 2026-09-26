@@ -1,4 +1,4 @@
-import { CalculatedRisk } from '../../utils/riskScoring';
+import type { CalculatedRisk } from '../../utils/riskScoring';
 import { RiskBadge } from '../ui/Badges';
 import { ChevronRight } from 'lucide-react';
 

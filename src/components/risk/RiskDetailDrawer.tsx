@@ -1,5 +1,5 @@
-import { CalculatedRisk } from '../../utils/riskScoring';
-import { Well } from '../../types';
+import type { CalculatedRisk } from '../../utils/riskScoring';
+import type { Well } from '../../types';
 import { X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { RiskBadge, SeverityBadge } from '../ui/Badges';
 
@@ -9,7 +9,7 @@ interface Props {
   onClose: () => void;
 }
 
-export function RiskDetailDrawer({ risk, activeWell, onClose }: Props) {
+export function RiskDetailDrawer({ risk, onClose }: Props) {
   if (!risk) return null;
 
   return (

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, BrainCircuit, ArrowRight, Layers, Target, Map } from 'lucide-react';
+import { Search, BrainCircuit, ArrowRight, Layers, Map } from 'lucide-react';
 import { useWellContext } from '../hooks/useWellContext';
 import { KnowledgeFilters, type KnowledgeFilterState } from '../components/knowledge/KnowledgeFilters';
 import { KnowledgeResultCard } from '../components/knowledge/KnowledgeResultCard';
@@ -18,7 +18,7 @@ export function KnowledgePage() {
   const navigate = useNavigate();
   const { activeWell, nearbyWells } = useWellContext();
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState(''); // For the input field before pressing enter
 
   const [filters, setFilters] = useState<KnowledgeFilterState>({

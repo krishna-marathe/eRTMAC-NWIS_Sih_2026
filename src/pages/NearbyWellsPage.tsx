@@ -4,7 +4,7 @@ import { WellFilters, type WellFilterState } from '../components/map/WellFilters
 import { WellMap } from '../components/map/WellMap';
 import { WellIntelligencePanel } from '../components/map/WellIntelligencePanel';
 import { WellComparisonModal } from '../components/map/WellComparisonModal';
-import type { Well } from '../types';
+
 
 export function NearbyWellsPage() {
   const { activeWell, nearbyWells } = useWellContext();

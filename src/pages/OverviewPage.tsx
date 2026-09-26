@@ -34,7 +34,7 @@ import { RiskSummaryCard } from '../components/risk/RiskSummaryCard';
 import { parameterTimeSeries, formations } from '../data/mockData';
 
 export function OverviewPage() {
-  const { activeWell, currentParameters, risks, alerts, nearbyWells, acknowledgeAlert } = useWellContext();
+  const { activeWell, currentParameters, risks, alerts, nearbyWells } = useWellContext();
 
   const unacknowledgedAlerts = alerts.filter((a) => !a.acknowledged);
   const topRisks = risks.slice(0, 3);
@@ -334,7 +334,7 @@ export function OverviewPage() {
                 key={alert.id}
                 alert={alert}
                 compact
-                onAcknowledge={acknowledgeAlert}
+                onClick={() => {}}
               />
             ))}
           </div>

@@ -1,5 +1,5 @@
-import { Well } from '../../types';
-import { CalculatedRisk } from '../../utils/riskScoring';
+import type { Well } from '../../types';
+import type { CalculatedRisk } from '../../utils/riskScoring';
 import { Activity, ShieldAlert, Layers } from 'lucide-react';
 import { RiskBadge } from '../ui/Badges';
 

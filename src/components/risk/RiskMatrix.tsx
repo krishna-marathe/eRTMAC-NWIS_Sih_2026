@@ -1,4 +1,4 @@
-import { CalculatedRisk } from '../../utils/riskScoring';
+import type { CalculatedRisk } from '../../utils/riskScoring';
 
 interface Props {
   risks: CalculatedRisk[];
@@ -47,9 +47,6 @@ export function RiskMatrix({ risks }: Props) {
         {risks.map((risk) => {
           if (risk.score === 0) return null;
           const { x, y } = getCellPosition(risk);
-          // Invert y since row 1 is top (high score), row 3 is bottom (low score)
-          const gridY = 3 - y;
-          const gridX = x + 1;
           
           return (
             <div 

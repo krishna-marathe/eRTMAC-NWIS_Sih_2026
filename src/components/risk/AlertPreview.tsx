@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react';
-import { CalculatedRisk } from '../../utils/riskScoring';
+import type { CalculatedRisk } from '../../utils/riskScoring';
 import { Link } from 'react-router-dom';
 
 interface Props {

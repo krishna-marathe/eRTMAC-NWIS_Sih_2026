@@ -4,7 +4,7 @@ import { useWellContext } from '../hooks/useWellContext';
 import { SectionHeader } from '../components/ui';
 import { AlertCard } from '../components/alerts/AlertCard';
 import { AlertDetailDrawer } from '../components/alerts/AlertDetailDrawer';
-import { Alert } from '../types';
+import type { Alert } from '../types';
 
 export function AlertsPage() {
   const { alerts, updateAlertStatus } = useWellContext();

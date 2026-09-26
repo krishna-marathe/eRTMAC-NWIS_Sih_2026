@@ -1,5 +1,5 @@
-import { CalculatedRisk } from '../../utils/riskScoring';
-import { Well } from '../../types';
+import type { CalculatedRisk } from '../../utils/riskScoring';
+import type { Well } from '../../types';
 
 interface Props {
   activeWell: Well;

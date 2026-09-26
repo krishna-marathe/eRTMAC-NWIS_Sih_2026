@@ -1,7 +1,7 @@
 import { X, ExternalLink, Calendar, MapPin, Layers, Target, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import type { Well, DrillingEvent } from '../../types';
-import { StatusBadge, RiskBadge, SeverityBadge } from '../ui/Badges';
+import { StatusBadge, SeverityBadge } from '../ui/Badges';
 
 interface WellIntelligencePanelProps {
   well: Well;

@@ -307,6 +307,7 @@ export const currentAlerts: Alert[] = [
     formation: 'F3',
     timestamp: '2026-09-26T02:35:00Z',
     acknowledged: false,
+    status: 'NEW',
     evidenceItems: [
       'OIL-X17: Pack-off at 3,180m (exact depth match)',
       'OIL-X11: Differential sticking at 3,210m (30m offset)',
@@ -328,6 +329,7 @@ export const currentAlerts: Alert[] = [
     formation: 'F3',
     timestamp: '2026-09-26T01:50:00Z',
     acknowledged: false,
+    status: 'NEW',
     evidenceItems: [
       'OIL-X27: Total losses at 3,080m in F3',
       'OIL-X11: Severe losses at 3,050m in F3',
@@ -348,6 +350,7 @@ export const currentAlerts: Alert[] = [
     formation: 'F3',
     timestamp: '2026-09-26T02:10:00Z',
     acknowledged: true,
+    status: 'ACKNOWLEDGED',
     evidenceItems: [
       'Torque increase: 12.8 → 14.2 kN·m over 50m interval',
       'OIL-X11 showed similar torque ramp before stuck pipe at 3,210m',
@@ -363,6 +366,7 @@ export const currentAlerts: Alert[] = [
     formation: 'F3',
     timestamp: '2026-09-26T00:30:00Z',
     acknowledged: true,
+    status: 'ACKNOWLEDGED',
     evidenceItems: [
       'OIL-X17 achieved optimal ROP of 14.2 m/hr at WOB 16 klbs in F3',
       'Current WOB 18.5 klbs exceeds offset average of 16.8 klbs for F3',

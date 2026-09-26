@@ -1,4 +1,4 @@
-import { Alert } from '../../types';
+import type { Alert } from '../../types';
 import { X, Clock, Navigation, BookOpen, Map, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { AlertPriorityBadge } from '../ui/Badges';
 import { Link } from 'react-router-dom';

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -45,7 +45,7 @@ interface WellMapProps {
   onWellSelect: (wellId: string) => void;
 }
 
-export function WellMap({ activeWell, nearbyWells, radius, selectedWellId, onWellSelect }: WellMapProps) {
+export function WellMap({ activeWell, nearbyWells, radius, onWellSelect }: WellMapProps) {
   const activeIcon = useMemo(() => createWellIcon(true, 100), []);
   
   return (

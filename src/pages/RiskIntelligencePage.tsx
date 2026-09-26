@@ -11,7 +11,8 @@ import {
   AlertPreview, 
   RiskMatrix 
 } from '../components/risk';
-import { calculateRiskForType, RISK_CATEGORIES, CalculatedRisk } from '../utils/riskScoring';
+import { calculateRiskForType, RISK_CATEGORIES } from '../utils/riskScoring';
+
 
 export function RiskIntelligencePage() {
   const { activeWell, nearbyWells } = useWellContext();

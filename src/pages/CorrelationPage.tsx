@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, AlertTriangle, Layers, BookOpen, Target, Settings2, ZoomIn, ZoomOut } from 'lucide-react';
+import { ArrowLeft, Play, AlertTriangle, BookOpen, Settings2 } from 'lucide-react';
 import { useWellContext } from '../hooks/useWellContext';
 import { StatusBadge, SeverityBadge } from '../components/ui/Badges';
 import { formations } from '../data/mockData';
-import type { Well, DrillingEvent } from '../types';
+import type { DrillingEvent } from '../types';
 
 export function CorrelationPage() {
   const navigate = useNavigate();
@@ -219,7 +219,7 @@ export function CorrelationPage() {
                           <div className="hidden group-hover:block absolute left-full ml-2 w-48 bg-navy-900 border border-border-subtle rounded p-2 z-50">
                             <p className="text-xs font-bold text-white mb-1">{ev.eventType}</p>
                             <p className="text-[10px] text-slate-400">Depth: {ev.depth}m | Fm: {ev.formation}</p>
-                            <SeverityBadge severity={ev.severity} size="sm" className="mt-1" />
+                            <SeverityBadge severity={ev.severity} className="mt-1" />
                           </div>
                        </div>
                      );

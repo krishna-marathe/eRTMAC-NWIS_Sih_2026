@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import type { FormationId, ReservoirId, EventType, EventSeverity } from '../../types';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { SlidersHorizontal, X } from 'lucide-react';
 
 export interface KnowledgeFilterState {
   searchQuery: string;

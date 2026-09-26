@@ -1,4 +1,4 @@
-import { X, ExternalLink, ShieldAlert, GitCommit, FileText, ArrowRight } from 'lucide-react';
+import { X, ShieldAlert, GitCommit, FileText } from 'lucide-react';
 import type { DrillingEvent, Well } from '../../types';
 import { SeverityBadge } from '../ui/Badges';
 

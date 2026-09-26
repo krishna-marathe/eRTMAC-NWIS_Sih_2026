@@ -57,12 +57,13 @@ export function RiskBadge({ level, size = 'md', showLabel = true }: RiskBadgePro
 
 interface SeverityBadgeProps {
   severity: EventSeverity;
+  className?: string;
 }
 
-export function SeverityBadge({ severity }: SeverityBadgeProps) {
+export function SeverityBadge({ severity, className = '' }: SeverityBadgeProps) {
   const cfg = riskConfig[severity];
   return (
-    <span className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded font-medium ${cfg.color} ${cfg.bg}`}>
+    <span className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded font-medium ${cfg.color} ${cfg.bg} ${className}`}>
       {severity}
     </span>
   );

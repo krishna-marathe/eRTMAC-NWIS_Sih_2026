@@ -1,5 +1,5 @@
-import { Well, DrillingEvent, RiskAssessment, RiskLevel, EventType } from '../types';
-import { nearbyWells } from '../data/mockData';
+import type { Well, DrillingEvent, RiskLevel, EventType } from '../types';
+
 
 export interface RiskFactor {
   name: string;
@@ -32,7 +32,7 @@ export function calculateRiskForType(
 ): CalculatedRisk {
   const currentDepth = activeWell.currentDepth || activeWell.totalDepth;
   const currentFormation = activeWell.formation;
-  const currentReservoir = activeWell.reservoir;
+  
 
   let totalScore = 0;
   const factors: RiskFactor[] = [];

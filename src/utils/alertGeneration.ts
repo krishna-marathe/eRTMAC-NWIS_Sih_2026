@@ -1,5 +1,6 @@
-import { Well, Alert, AlertPriority } from '../types';
-import { calculateRiskForType, RISK_CATEGORIES, CalculatedRisk } from './riskScoring';
+import type { Well, Alert } from '../types';
+import { calculateRiskForType, RISK_CATEGORIES } from './riskScoring';
+
 
 export function generateAlertsForWell(activeWell: Well, nearbyWells: Well[]): Alert[] {
   const alerts: Alert[] = [];
