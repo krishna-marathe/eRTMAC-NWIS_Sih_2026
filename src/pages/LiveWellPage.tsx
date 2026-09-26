@@ -18,60 +18,68 @@ import { parameterTimeSeries } from '../data/mockData';
 export function LiveWellPage() {
   const { activeWell, currentParameters } = useWellContext();
 
-  // Create a synthetic sequence of 20 points after the current parameters for deterministic demo
-  const playbackSequence = useMemo(() => {
-    const seq = [{ ...currentParameters }];
-    let last = seq[0];
-    for (let i = 1; i <= 20; i++) {
-      last = {
-        ...last,
-        depth: last.depth + 10,
-        torque: Number((last.torque + 0.15 + (i % 3 === 0 ? 0.3 : 0)).toFixed(1)),
-        rop: Number((Math.max(8, last.rop - 0.2)).toFixed(1)),
-        wob: Number((last.wob + 0.1).toFixed(1)),
-        rpm: last.rpm,
-        ecd: Number((last.ecd + 0.05).toFixed(2)),
-        mudFlow: last.mudFlow,
-        mudWeight: last.mudWeight,
-        pressure: last.pressure + 5,
-        hookLoad: last.hookLoad,
-        timestamp: new Date(new Date(last.timestamp).getTime() + 15 * 60000).toISOString(),
-      };
-      seq.push(last);
-    }
-    return seq;
-  }, [currentParameters]);
-
+  const [playbackHistory, setPlaybackHistory] = useState([{ ...currentParameters }]);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackIndex, setPlaybackIndex] = useState(0);
+
+  // Generate next deterministic point based on the last point and base depth
+  const generateNextPoint = (last: typeof currentParameters, baseDepth: number) => {
+    const step = Math.round((last.depth - baseDepth) / 10) + 1;
+    return {
+      ...last,
+      depth: last.depth + 10,
+      torque: Number((last.torque + 0.15 + (step % 3 === 0 ? 0.3 : 0)).toFixed(1)),
+      rop: Number((Math.max(8, last.rop - 0.2)).toFixed(1)),
+      wob: Number((last.wob + 0.1).toFixed(1)),
+      rpm: last.rpm,
+      ecd: Number((last.ecd + 0.05).toFixed(2)),
+      mudFlow: last.mudFlow,
+      mudWeight: last.mudWeight,
+      pressure: last.pressure + 5,
+      hookLoad: last.hookLoad,
+      timestamp: new Date(new Date(last.timestamp).getTime() + 15 * 60000).toISOString(),
+    };
+  };
+
+  // Reset playback if the active well changes
+  useEffect(() => {
+    setPlaybackHistory([{ ...currentParameters }]);
+    setIsPlaying(false);
+  }, [currentParameters]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isPlaying) {
       interval = setInterval(() => {
-        setPlaybackIndex((prev) => {
-          if (prev >= playbackSequence.length - 1) return 0; // loop back to 0
-          return prev + 1;
+        setPlaybackHistory((prev) => {
+          const lastPoint = prev[prev.length - 1];
+          const nextPoint = generateNextPoint(lastPoint, currentParameters.depth);
+          return [...prev, nextPoint];
         });
       }, 1500); // 1.5 seconds per step
     }
     return () => clearInterval(interval);
-  }, [isPlaying, playbackSequence.length]);
+  }, [isPlaying, currentParameters.depth]);
 
   const handlePlayPause = () => setIsPlaying(!isPlaying);
   const handleReset = () => {
     setIsPlaying(false);
-    setPlaybackIndex(0);
+    setPlaybackHistory([{ ...currentParameters }]);
   };
 
-  const currentSimulatedParams = playbackSequence[playbackIndex];
+  const currentSimulatedParams = playbackHistory[playbackHistory.length - 1];
+  const stepCount = playbackHistory.length - 1;
 
-  // Derive chart data combining history and current playback state
+  // Derive chart data combining history and current playback state with a rolling window
   const chartData = useMemo(() => {
-    const baseHistory = parameterTimeSeries.filter(p => p.depth < playbackSequence[0].depth);
-    const playbackHistory = playbackSequence.slice(0, playbackIndex + 1);
+    const baseHistory = parameterTimeSeries.filter(p => p.depth < currentParameters.depth);
+    let combined = [...baseHistory, ...playbackHistory];
     
-    return [...baseHistory, ...playbackHistory].map((p) => ({
+    // Rolling window of max 30 points to keep chart readable and performant
+    if (combined.length > 30) {
+      combined = combined.slice(combined.length - 30);
+    }
+
+    return combined.map((p) => ({
       depth: p.depth,
       torque: p.torque,
       rop: p.rop,
@@ -79,7 +87,7 @@ export function LiveWellPage() {
       rpm: p.rpm,
       ecd: p.ecd,
     }));
-  }, [playbackIndex, playbackSequence]);
+  }, [playbackHistory, currentParameters.depth]);
 
   return (
     <div className="space-y-5 max-w-[1600px] mx-auto">
@@ -116,7 +124,7 @@ export function LiveWellPage() {
               </button>
             </div>
             <div className="text-xs text-slate-400 font-mono">
-              Step: {playbackIndex + 1} / {playbackSequence.length}
+              Step: {stepCount}
             </div>
             <span className={`text-[10px] font-mono tracking-wider px-2 py-0.5 rounded border font-medium ${
               isPlaying ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'

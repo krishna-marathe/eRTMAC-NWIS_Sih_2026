@@ -9,6 +9,7 @@ import {
   Bell,
   FileBarChart,
   Waves,
+  Upload,
 } from 'lucide-react';
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
   { to: '/risk',          label: 'Risk Intelligence',    icon: ShieldAlert },
   { to: '/alerts',        label: 'Alerts',               icon: Bell },
   { to: '/reports',       label: 'Reports',              icon: FileBarChart },
+  { to: '/import',        label: 'Data Import',          icon: Upload },
 ];
 
 export function Sidebar() {
