@@ -99,22 +99,46 @@ export function WellProvider({ children }: { children: ReactNode }) {
 
   const extendedNearbyWells = useMemo(() => {
     if (importedRecords.length === 0) return nearbyWells;
-    const fakeWell: Well = {
-      id: 'IMPORTED-DATA',
-      name: 'Imported Prototype Records',
-      latitude: well.latitude + 0.01,
-      longitude: well.longitude + 0.01,
-      distanceFromActiveWell: 1.5,
-      totalDepth: 5000,
-      formation: well.formation,
-      reservoir: well.reservoir,
-      status: 'COMPLETED',
-      drillingDate: '2026-01-01T00:00:00Z',
-      spudDate: '2026-01-01T00:00:00Z',
-      historicalEvents: importedRecords,
-      relevanceScore: 85
-    };
-    return [...nearbyWells, fakeWell];
+
+    const importedByWell: Record<string, DrillingEvent[]> = {};
+    importedRecords.forEach(event => {
+      const wId = event.wellId || 'UNKNOWN-WELL';
+      if (!importedByWell[wId]) importedByWell[wId] = [];
+      importedByWell[wId].push(event);
+    });
+
+    const knownWellIds = new Set<string>();
+
+    const mergedWells = nearbyWells.map(well => {
+      knownWellIds.add(well.id);
+      if (importedByWell[well.id]) {
+        return {
+          ...well,
+          historicalEvents: [...well.historicalEvents, ...importedByWell[well.id]]
+        };
+      }
+      return well;
+    });
+
+    const unresolvedWells: Well[] = Object.keys(importedByWell)
+      .filter(wId => !knownWellIds.has(wId))
+      .map(wId => ({
+        id: wId,
+        name: `Unresolved Reference: ${wId}`,
+        latitude: well.latitude + 0.05,
+        longitude: well.longitude + 0.05,
+        distanceFromActiveWell: 5.0,
+        totalDepth: 5000,
+        formation: well.formation,
+        reservoir: well.reservoir,
+        status: 'COMPLETED',
+        drillingDate: '2026-01-01T00:00:00Z',
+        spudDate: '2026-01-01T00:00:00Z',
+        historicalEvents: importedByWell[wId],
+        relevanceScore: 50
+      }));
+
+    return [...mergedWells, ...unresolvedWells];
   }, [nearbyWells, importedRecords, well]);
 
   return (

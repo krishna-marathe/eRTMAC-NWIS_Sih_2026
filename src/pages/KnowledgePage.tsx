@@ -109,8 +109,10 @@ export function KnowledgePage() {
         const matchesWell = c.well.id.toLowerCase().includes(query);
         const matchesForm = c.event.formation.toLowerCase().includes(query);
         const matchesRes = c.well.reservoir.toLowerCase().includes(query);
+        const matchesMitigation = c.event.mitigation?.toLowerCase().includes(query) || false;
+        const matchesSourceText = c.event.sourceMetadata?.extractedText.toLowerCase().includes(query) || false;
         
-        if (!matchesType && !matchesDesc && !matchesWell && !matchesForm && !matchesRes) return false;
+        if (!matchesType && !matchesDesc && !matchesWell && !matchesForm && !matchesRes && !matchesMitigation && !matchesSourceText) return false;
       }
 
       return true;

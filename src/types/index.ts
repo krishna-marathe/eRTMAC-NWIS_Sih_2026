@@ -42,6 +42,7 @@ export interface Well {
 
 export interface DrillingEvent {
   id: string;
+  wellId?: string;
   eventType: EventType;
   depth: number;                 // meters
   formation: FormationId;

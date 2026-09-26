@@ -76,31 +76,37 @@ export function HistoricalCaseDrawer({ event, well, relatedCases, onClose, onOpe
            </h3>
            <div className="bg-navy-900 rounded-lg border border-border-subtle p-4">
              <div className="grid grid-cols-2 gap-4 text-xs mb-4">
-               <div><span className="text-slate-500">Source Document:</span> <span className="text-accent-400">{event.sourceDocument}</span></div>
-               <div><span className="text-slate-500">Document Type:</span> <span className="text-white">DDR</span></div>
-               <div><span className="text-slate-500">Referenced Well:</span> <span className="text-white">{well.id}</span></div>
+               <div><span className="text-slate-500">Source Document:</span> <span className="text-accent-400">{event.sourceMetadata ? event.sourceMetadata.filename : event.sourceDocument}</span></div>
+               <div><span className="text-slate-500">Document Type:</span> <span className="text-white">{event.sourceMetadata ? event.sourceMetadata.extractionMethod : 'DDR'}</span></div>
+               <div><span className="text-slate-500">Referenced Well:</span> <span className="text-white">{event.wellId || well.id}</span></div>
                <div><span className="text-slate-500">Depth Interval:</span> <span className="text-white">{depthRange}</span></div>
                <div><span className="text-slate-500">Extracted Event:</span> <span className="text-white">{event.eventType}</span></div>
                <div><span className="text-slate-500">Confidence:</span> <span className="text-accent-400">Prototype extraction</span></div>
              </div>
 
              {/* Document Preview Area */}
-             <div className="bg-navy-950 p-4 rounded border border-border-default font-mono text-[11px] text-slate-400 leading-relaxed relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-1 bg-navy-800 text-[9px] text-slate-500 rounded-bl">Synthetic Demo Document</div>
-                <p className="text-center mb-3">-----------------------------------------<br/>HISTORICAL DRILLING RECORD<br/>-----------------------------------------</p>
-                <p>Well: {well.id}</p>
-                <p>Formation: {event.formation}</p>
-                <p>Depth: {depthRange}</p>
-                <br/>
-                <p>EVENT:</p>
-                <p className="text-white">{event.eventType}</p>
-                <br/>
-                <p>OBSERVATION:</p>
-                <p className="text-white">{event.description}</p>
-                <br/>
-                <p>HISTORICAL RESPONSE:</p>
-                <p className="text-white">Operational response documented.</p>
-                <p className="text-center mt-3">-----------------------------------------</p>
+             <div className="bg-navy-950 p-4 rounded border border-border-default font-mono text-[11px] text-slate-400 leading-relaxed relative overflow-hidden h-48 overflow-y-auto whitespace-pre-wrap">
+                <div className="absolute top-0 right-0 p-1 bg-navy-800 text-[9px] text-slate-500 rounded-bl">{event.sourceMetadata ? 'Imported Source Text' : 'Synthetic Demo Document'}</div>
+                {event.sourceMetadata ? (
+                  <p>{event.sourceMetadata.extractedText}</p>
+                ) : (
+                  <>
+                    <p className="text-center mb-3">-----------------------------------------<br/>HISTORICAL DRILLING RECORD<br/>-----------------------------------------</p>
+                    <p>Well: {well.id}</p>
+                    <p>Formation: {event.formation}</p>
+                    <p>Depth: {depthRange}</p>
+                    <br/>
+                    <p>EVENT:</p>
+                    <p className="text-white">{event.eventType}</p>
+                    <br/>
+                    <p>OBSERVATION:</p>
+                    <p className="text-white">{event.description}</p>
+                    <br/>
+                    <p>HISTORICAL RESPONSE:</p>
+                    <p className="text-white">Operational response documented.</p>
+                    <p className="text-center mt-3">-----------------------------------------</p>
+                  </>
+                )}
              </div>
            </div>
         </div>

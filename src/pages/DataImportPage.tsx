@@ -158,6 +158,7 @@ export function DataImportPage() {
   const validateRowData = (row: any): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
     if (!row.id) errors.push("Missing ID");
+    if (!row.wellId) errors.push("Missing Well ID");
     if (!['Mud Loss', 'Stuck Pipe', 'Kick', 'Torque Spike', 'Cementing Issue', 'Fishing', 'NPT'].includes(row.eventType)) errors.push("Invalid eventType");
     if (typeof row.depth !== 'number' || isNaN(row.depth)) errors.push("Invalid depth");
     if (!['F1', 'F2', 'F3', 'F4', 'F5'].includes(row.formation)) errors.push("Invalid formation");
@@ -179,6 +180,7 @@ export function DataImportPage() {
 
     const eventToApprove: DrillingEvent = {
       id: record.data.id!,
+      wellId: record.data.wellId!,
       eventType: record.data.eventType as EventType,
       depth: record.data.depth!,
       formation: record.data.formation as FormationId,
@@ -229,6 +231,7 @@ export function DataImportPage() {
       extractedText: '{"id": "EV-SAMPLE", "eventType": "Torque Spike"}',
       data: {
         id: "EV-SAMPLE-01",
+        wellId: "OFFSET-1",
         eventType: "Torque Spike",
         depth: 3500,
         formation: "F4",
@@ -372,14 +375,25 @@ export function DataImportPage() {
           </div>
 
           <div className="space-y-4 mb-6">
-            <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1">Well / Event ID *</label>
-              <input 
-                type="text" 
-                value={selectedRecord.data.id || ''} 
-                onChange={(e) => updateRecordData(selectedRecord.tempId, 'id', e.target.value)}
-                className="w-full bg-navy-900 border border-border-subtle rounded p-2 text-sm text-white focus:outline-none focus:border-accent-500"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Event ID *</label>
+                <input 
+                  type="text" 
+                  value={selectedRecord.data.id || ''} 
+                  onChange={(e) => updateRecordData(selectedRecord.tempId, 'id', e.target.value)}
+                  className="w-full bg-navy-900 border border-border-subtle rounded p-2 text-sm text-white focus:outline-none focus:border-accent-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Well ID *</label>
+                <input 
+                  type="text" 
+                  value={selectedRecord.data.wellId || ''} 
+                  onChange={(e) => updateRecordData(selectedRecord.tempId, 'wellId', e.target.value)}
+                  className="w-full bg-navy-900 border border-border-subtle rounded p-2 text-sm text-white focus:outline-none focus:border-accent-500"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1">Event Type *</label>
