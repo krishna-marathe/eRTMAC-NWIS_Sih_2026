@@ -122,7 +122,11 @@ export function DataImportPage() {
     const text = await file.text();
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
     if (lines.length < 2) throw new Error("CSV must have a header row and at least one data row.");
-    const headers = lines[0].split(',');
+    const headers = lines[0].split(',').map(h => h.trim());
+    
+    if (headers.includes('run_id') || headers.includes('start_depth_m') || headers.includes('end_depth_m')) {
+      throw new Error("This file appears to contain drilling-run/interval data rather than historical incidents. Please map fields to the historical-event schema (Requires id, wellId, eventType, depth, severity).");
+    }
     
     const newRecords: PendingRecord[] = [];
     for (let i = 1; i < lines.length; i++) {
@@ -355,7 +359,7 @@ export function DataImportPage() {
 
       {/* Review Drawer */}
       {selectedRecord && (
-        <div className="w-[400px] shrink-0 bg-surface-card border-l border-border-default h-[calc(100vh-80px)] overflow-y-auto fixed right-0 top-[80px] p-5 shadow-2xl z-40">
+        <div className="w-[400px] shrink-0 bg-surface-secondary border-l border-border-default h-[calc(100vh-80px)] overflow-y-auto fixed right-0 top-[80px] p-5 shadow-2xl z-40">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <Edit2 size={18} className="text-accent-400" /> Review Record

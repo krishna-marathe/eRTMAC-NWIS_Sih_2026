@@ -13,7 +13,7 @@ export function RiskDetailDrawer({ risk, onClose }: Props) {
   if (!risk) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-[500px] bg-surface-base border-l border-border-default shadow-2xl z-50 flex flex-col transform transition-transform duration-300">
+    <div className="fixed inset-y-0 right-0 w-[500px] bg-surface-secondary border-l border-border-default shadow-2xl z-50 flex flex-col transform transition-transform duration-300">
       <div className="flex items-center justify-between p-5 border-b border-border-subtle bg-surface-card">
         <div>
           <h2 className="text-lg font-bold text-white">{risk.riskType === 'Torque Spike' ? 'Torque / Drag' : risk.riskType}</h2>

@@ -5,50 +5,62 @@
    ============================================================ */
 
 @theme {
-  /* ── Navy / Deep-Blue Primary ──────────────────────────────── */
-  --color-navy-950: #0a0e1a;
-  --color-navy-900: #0d1321;
-  --color-navy-800: #131b2e;
-  --color-navy-700: #1a2540;
-  --color-navy-600: #243052;
-  --color-navy-500: #2f3f6a;
-  --color-navy-400: #4a5d8a;
-  --color-navy-300: #6b7faa;
-  --color-navy-200: #96a6c7;
-  --color-navy-100: #c4cedf;
-  --color-navy-50: #e8ecf3;
+  /* ── Navy / Deep-Blue Primary (Reversed for Light Mode) ──────────────────────────────── */
+  --color-navy-950: #f8fafc; /* Main background */
+  --color-navy-900: #ffffff; /* Cards / Sidebar */
+  --color-navy-800: #f1f5f9; /* Hover states */
+  --color-navy-700: #e2e8f0; /* Borders / Active */
+  --color-navy-600: #cbd5e1;
+  --color-navy-500: #94a3b8;
+  --color-navy-400: #64748b;
+  --color-navy-300: #475569;
+  --color-navy-200: #334155;
+  --color-navy-100: #1e293b;
+  --color-navy-50: #0f172a;  /* Darkest text */
+
+  /* ── Override Tailwind text colors for light mode ──────────────────────────────── */
+  --color-white: #0f172a; /* Make text-white output dark charcoal */
+  --color-slate-100: #0f172a;
+  --color-slate-200: #1e293b;
+  --color-slate-300: #334155;
+  --color-slate-400: #475569;
+  --color-slate-500: #64748b;
+  --color-slate-600: #94a3b8;
+  --color-slate-700: #cbd5e1;
+  --color-slate-800: #e2e8f0;
+  --color-slate-900: #f1f5f9;
 
   /* ── Accent: Cyan / Teal ───────────────────────────────────── */
-  --color-accent-500: #22d3ee;
-  --color-accent-400: #67e8f9;
-  --color-accent-300: #a5f3fc;
-  --color-accent-600: #0891b2;
+  --color-accent-500: #0891b2;
+  --color-accent-400: #06b6d4;
+  --color-accent-300: #22d3ee;
+  --color-accent-600: #0e7490;
 
   /* ── Status Colors ─────────────────────────────────────────── */
-  --color-status-success: #22c55e;
-  --color-status-warning: #f59e0b;
-  --color-status-danger: #ef4444;
-  --color-status-info: #3b82f6;
-  --color-status-critical: #dc2626;
+  --color-status-success: #16a34a;
+  --color-status-warning: #d97706;
+  --color-status-danger: #dc2626;
+  --color-status-info: #2563eb;
+  --color-status-critical: #b91c1c;
 
   /* ── Surfaces ──────────────────────────────────────────────── */
-  --color-surface-primary: #0d1321;
-  --color-surface-secondary: #131b2e;
-  --color-surface-card: #1a2540;
-  --color-surface-elevated: #243052;
-  --color-surface-hover: #2f3f6a;
+  --color-surface-primary: #f8fafc;
+  --color-surface-secondary: #ffffff;
+  --color-surface-card: #ffffff;
+  --color-surface-elevated: #f1f5f9;
+  --color-surface-hover: #e2e8f0;
 
   /* ── Borders ───────────────────────────────────────────────── */
-  --color-border-default: #1e293b;
-  --color-border-subtle: #162032;
-  --color-border-strong: #334155;
+  --color-border-default: #e2e8f0;
+  --color-border-subtle: #f1f5f9;
+  --color-border-strong: #cbd5e1;
 }
 
 /* ── Base ──────────────────────────────────────────────────── */
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: var(--color-navy-950);
-  color: #e2e8f0;
+  color: var(--color-white);
   margin: 0;
   padding: 0;
   overflow: hidden;
@@ -89,9 +101,9 @@ body {
 
 /* ── Utilities ─────────────────────────────────────────────── */
 .glass-card {
-  background: rgba(26, 37, 64, 0.7);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .pulse-dot {
@@ -104,18 +116,51 @@ body {
 }
 
 .status-glow-green {
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 0 8px rgba(22, 163, 74, 0.3);
 }
 
 .status-glow-red {
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 8px rgba(220, 38, 38, 0.3);
 }
 
 .status-glow-yellow {
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 8px rgba(217, 119, 6, 0.3);
 }
 
 /* ── Leaflet overrides for dark theme ────────────────────── */
 .leaflet-container {
   background: var(--color-navy-900) !important;
+}
+
+/* ── Print Styles ────────────────────────────────────────── */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  
+  /* Hide all UI elements not meant for printing */
+  nav, header, .sidebar, .no-print, button, .top-bar {
+    display: none !important;
+  }
+  
+  /* Only display the report content */
+  .print-only {
+    display: block !important;
+  }
+  
+  #root, .app-layout, .main-content {
+    display: block;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+  }
+
+  .report-preview-container {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
 }

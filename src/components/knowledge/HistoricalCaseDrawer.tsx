@@ -14,7 +14,7 @@ export function HistoricalCaseDrawer({ event, well, relatedCases, onClose, onOpe
   const depthRange = `${event.depth} - ${event.depth + (event.durationHours ? event.durationHours * 2 : 20)}m`;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-[500px] bg-surface-card border-l border-border-default shadow-2xl z-50 flex flex-col transform transition-transform duration-300">
+    <div className="fixed inset-y-0 right-0 w-[500px] bg-surface-secondary border-l border-border-default shadow-2xl z-50 flex flex-col transform transition-transform duration-300">
       
       {/* Header */}
       <div className="p-5 border-b border-border-default bg-navy-900 flex justify-between items-center shrink-0">

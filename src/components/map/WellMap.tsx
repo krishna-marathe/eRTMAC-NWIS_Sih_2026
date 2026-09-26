@@ -53,13 +53,25 @@ export function WellMap({ activeWell, nearbyWells, radius, onWellSelect }: WellM
       <MapContainer
         center={[activeWell.latitude, activeWell.longitude]}
         zoom={12}
-        style={{ height: '100%', width: '100%', background: '#0d1321' }}
+        style={{ height: '100%', width: '100%', background: '#f8fafc' }}
         zoomControl={false}
       >
-        <TileLayer
-          url={`https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${import.meta.env.VITE_CARTO_API_KEY}&v=2`}
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
-        />
+        {import.meta.env.VITE_CARTO_API_KEY ? (
+          <TileLayer
+            url={`https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=${import.meta.env.VITE_CARTO_API_KEY}&v=2`}
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+          />
+        ) : (
+          <>
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-3 py-1 rounded shadow-md z-[1000] text-xs font-bold">
+              CARTO API Key missing. Displaying standard fallback map.
+            </div>
+          </>
+        )}
         
         <MapBoundsUpdater activeWell={activeWell} radius={radius} />
 

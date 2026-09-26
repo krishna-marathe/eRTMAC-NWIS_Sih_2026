@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import {
   Drill,
   Gauge,
@@ -215,12 +216,12 @@ export function OverviewPage() {
                     <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
                   dataKey="depth"
                   tick={{ fontSize: 11, fill: '#64748b' }}
                   tickLine={false}
-                  axisLine={{ stroke: '#1e293b' }}
+                  axisLine={{ stroke: '#e2e8f0' }}
                   label={{ value: 'Depth (m)', position: 'insideBottom', offset: -2, style: { fontSize: 10, fill: '#64748b' } }}
                 />
                 <YAxis
@@ -240,11 +241,11 @@ export function OverviewPage() {
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#1a2540',
-                    border: '1px solid #1e293b',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
                     borderRadius: '8px',
                     fontSize: '12px',
-                    color: '#e2e8f0',
+                    color: '#0f172a',
                   }}
                 />
                 <Area
@@ -296,9 +297,9 @@ export function OverviewPage() {
             subtitle={`${nearbyWells.length} offset wells within 10 km`}
             icon={MapPin}
             action={
-              <span className="text-xs text-accent-400 hover:text-accent-300 cursor-pointer font-medium">
+              <Link to="/nearby-wells" className="text-xs text-accent-400 hover:text-accent-300 font-medium">
                 View All →
-              </span>
+              </Link>
             }
           />
 
@@ -322,9 +323,9 @@ export function OverviewPage() {
             subtitle="Evidence-based proactive alerts"
             icon={Bell}
             action={
-              <span className="text-xs text-accent-400 hover:text-accent-300 cursor-pointer font-medium">
+              <Link to="/alerts" className="text-xs text-accent-400 hover:text-accent-300 font-medium">
                 View All →
-              </span>
+              </Link>
             }
           />
 
@@ -349,6 +350,11 @@ export function OverviewPage() {
           title="Active Risk Assessments"
           subtitle="AI-correlated risk intelligence with evidence"
           icon={ShieldAlert}
+          action={
+            <Link to="/risk" className="text-xs text-accent-400 hover:text-accent-300 font-medium">
+              View Risk Intelligence →
+            </Link>
+          }
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {topRisks.map((risk) => (
