@@ -81,6 +81,8 @@ export interface RiskAssessment {
   timestamp: string;
 }
 
+export type AlertStatus = 'NEW' | 'ACKNOWLEDGED' | 'UNDER_REVIEW' | 'RESOLVED';
+
 export interface Alert {
   id: string;
   title: string;
@@ -91,7 +93,8 @@ export interface Alert {
   depth?: number;
   formation?: FormationId;
   timestamp: string;
-  acknowledged: boolean;
+  acknowledged: boolean; // Kept for legacy components
+  status: AlertStatus;   // Phase 6 status
   evidenceItems?: string[];
   mitigationActions?: string[];
 }
