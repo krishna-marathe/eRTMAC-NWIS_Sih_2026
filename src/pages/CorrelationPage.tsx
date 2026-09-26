@@ -230,9 +230,26 @@ export function CorrelationPage() {
                {/* Active Well Track */}
                <div className="flex-1 min-w-[150px] max-w-[250px] relative border-l border-r border-accent-500/30 bg-accent-500/5 shadow-[0_0_20px_rgba(34,211,238,0.05)]">
                   <div className="absolute top-0 left-0 w-full p-2 text-center bg-navy-900 border-b border-accent-500/30 z-30">
-                     <p className="text-[11px] font-bold text-emerald-400">ACTIVE WELL</p>
-                     <p className="text-[9px] text-slate-400">Drilling</p>
+                     <p className="text-[11px] font-bold text-emerald-400">{activeWell.id}</p>
+                     <p className="text-[9px] text-slate-400">{activeWell.status}</p>
                   </div>
+
+                  <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40 text-center p-4 z-20 pointer-events-none mt-10">
+                    <p className="text-[10px] text-emerald-400 font-mono">No historical events for active well</p>
+                  </div>
+
+                  {activeWell.currentDepth !== undefined && activeWell.currentDepth >= visibleTopDepth && activeWell.currentDepth <= visibleBottomDepth && (
+                    <div 
+                      className="absolute w-10/12 left-1/12 bg-emerald-500/20 border border-emerald-500 rounded flex flex-col items-center justify-center z-20 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                      style={{
+                        top: `calc(${((activeWell.currentDepth - visibleTopDepth) / (visibleBottomDepth - visibleTopDepth)) * 100}% - 15px)`,
+                        height: '30px'
+                      }}
+                    >
+                      <p className="text-[10px] font-bold text-emerald-400">CURRENT POSITION</p>
+                      <p className="text-[9px] text-emerald-200/70">{activeWell.currentDepth}m</p>
+                    </div>
+                  )}
                </div>
 
              </div>
@@ -353,7 +370,9 @@ export function CorrelationPage() {
               </div>
 
               <div className="pt-2 border-t border-border-subtle flex justify-between items-center">
-                 <p className="text-[10px] text-slate-500">Source: <a href="#" className="text-accent-400 hover:underline">{selectedEvent.sourceDocument}</a></p>
+                 <p className="text-[10px] text-slate-500">
+                   Source: <span className="text-slate-400 cursor-not-allowed border-b border-dashed border-slate-600 pb-[1px]" title="Source record unavailable in prototype">{selectedEvent.sourceDocument}</span>
+                 </p>
                  <p className="text-[9px] text-slate-600 italic">Synthetic demo document</p>
               </div>
             </div>

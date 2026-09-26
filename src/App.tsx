@@ -9,6 +9,7 @@ import { KnowledgePage } from './pages/KnowledgePage';
 import { RiskIntelligencePage } from './pages/RiskIntelligencePage';
 import { AlertsPage } from './pages/AlertsPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { DataImportPage } from './pages/DataImportPage';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="/risk" element={<RiskIntelligencePage />} />
             <Route path="/alerts" element={<AlertsPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/import" element={<DataImportPage />} />
           </Route>
         </Routes>
       </WellProvider>

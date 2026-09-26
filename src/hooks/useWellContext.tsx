@@ -3,7 +3,7 @@
 // ============================================================
 
 import { createContext, useContext, useState, useMemo, type ReactNode } from 'react';
-import type { Well, DrillingParameters, RiskAssessment, Alert, AlertStatus } from '../types';
+import type { Well, DrillingParameters, RiskAssessment, Alert, AlertStatus, DrillingEvent } from '../types';
 import {
   activeWell as defaultActiveWell,
   currentDrillingParameters,
@@ -33,6 +33,8 @@ interface WellContextType {
   updateAlertStatus: (alertId: string, status: AlertStatus) => void;
   reportNotes: Record<string, ReportNotes>;
   updateReportNotes: (wellId: string, notes: ReportNotes) => void;
+  importedRecords: DrillingEvent[];
+  addImportedRecords: (records: DrillingEvent[]) => void;
 }
 
 const WellContext = createContext<WellContextType | undefined>(undefined);
@@ -45,6 +47,31 @@ export function WellProvider({ children }: { children: ReactNode }) {
   
   const [alerts, setAlerts] = useState<Alert[]>(initialAlerts);
   const [reportNotes, setReportNotes] = useState<Record<string, ReportNotes>>({});
+  
+  // Session storage for imported records
+  const [importedRecords, setImportedRecords] = useState<DrillingEvent[]>(() => {
+    try {
+      const saved = sessionStorage.getItem('nwis_imported_records');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const addImportedRecords = (records: DrillingEvent[]) => {
+    setImportedRecords((prev) => {
+      // Deduplicate by ID
+      const existingIds = new Set(prev.map(r => r.id));
+      const newRecords = records.filter(r => !existingIds.has(r.id));
+      const updated = [...prev, ...newRecords];
+      try {
+        sessionStorage.setItem('nwis_imported_records', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save to session storage', e);
+      }
+      return updated;
+    });
+  };
 
   const acknowledgeAlert = (alertId: string) => {
     setAlerts((prev) =>
@@ -70,6 +97,26 @@ export function WellProvider({ children }: { children: ReactNode }) {
 
   const unacknowledgedAlertCount = alerts.filter((a) => !a.acknowledged && a.status === 'NEW').length;
 
+  const extendedNearbyWells = useMemo(() => {
+    if (importedRecords.length === 0) return nearbyWells;
+    const fakeWell: Well = {
+      id: 'IMPORTED-DATA',
+      name: 'Imported Prototype Records',
+      latitude: well.latitude + 0.01,
+      longitude: well.longitude + 0.01,
+      distanceFromActiveWell: 1.5,
+      totalDepth: 5000,
+      formation: well.formation,
+      reservoir: well.reservoir,
+      status: 'COMPLETED',
+      drillingDate: '2026-01-01T00:00:00Z',
+      spudDate: '2026-01-01T00:00:00Z',
+      historicalEvents: importedRecords,
+      relevanceScore: 85
+    };
+    return [...nearbyWells, fakeWell];
+  }, [nearbyWells, importedRecords, well]);
+
   return (
     <WellContext.Provider
       value={{
@@ -79,11 +126,13 @@ export function WellProvider({ children }: { children: ReactNode }) {
         risks: currentRisks,
         alerts,
         unacknowledgedAlertCount,
-        nearbyWells,
+        nearbyWells: extendedNearbyWells,
         acknowledgeAlert,
         updateAlertStatus,
         reportNotes,
         updateReportNotes,
+        importedRecords,
+        addImportedRecords,
       }}
     >
       {children}

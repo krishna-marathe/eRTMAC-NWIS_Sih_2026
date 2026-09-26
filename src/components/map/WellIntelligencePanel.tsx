@@ -168,9 +168,9 @@ function HistoricalEventCard({ event }: { event: DrillingEvent }) {
              <span className="text-slate-500 flex items-center gap-1">
                <Calendar size={10} /> {new Date(event.timestamp).toLocaleDateString()}
              </span>
-             <a href="#" className="flex items-center gap-1 text-accent-400 hover:underline">
+             <span className="flex items-center gap-1 text-slate-400 cursor-not-allowed border-b border-dashed border-slate-600 pb-[1px]" title="Source record unavailable in prototype">
                {event.sourceDocument} <ExternalLink size={10} />
-             </a>
+             </span>
           </div>
           <p className="text-[9px] text-slate-600 italic text-right mt-1">Synthetic demo document</p>
         </div>
